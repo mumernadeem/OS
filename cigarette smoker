@@ -1,0 +1,96 @@
+#include <stdio.h>
+#include <stdlib.h>
+#include <pthread.h>
+#include <stdbool.h>
+#include <time.h>
+
+pthread_mutex_t mutex = PTHREAD_MUTEX_INITIALIZER;
+int tobacco, paper, matches;
+
+void *agent(void *arg) {
+    srand(time(NULL));
+    while (true) {
+        int r = rand() % 3;
+        pthread_mutex_lock(&mutex);
+        switch (r) {
+            case 0:
+                tobacco = 1;
+                paper = 1;
+                matches = 0;
+                printf("Agent: Put tobacco and paper on the table\n");
+                break;
+            case 1:
+                tobacco = 1;
+                paper = 0;
+                matches = 1;
+                printf("Agent: Put tobacco and matches on the table\n");
+                break;
+            case 2:
+                tobacco = 0;
+                paper = 1;
+                matches = 1;
+                printf("Agent: Put paper and matches on the table\n");
+                break;
+        }
+        pthread_mutex_unlock(&mutex);
+        sleep(1);
+    }
+    return NULL;
+}
+
+void *smoker_tobacco(void *arg) {
+    while (true) {
+        pthread_mutex_lock(&mutex);
+        if (paper && matches) {
+            printf("Smoker with tobacco: Make cigarette and smoke\n");
+            paper = 0;
+            matches = 0;
+        }
+        pthread_mutex_unlock(&mutex);
+        sleep(1);
+    }
+    return NULL;
+}
+
+void *smoker_paper(void *arg) {
+    while (true) {
+        pthread_mutex_lock(&mutex);
+        if (tobacco && matches) {
+            printf("Smoker with paper: Make cigarette and smoke\n");
+            tobacco = 0;
+            matches = 0;
+        }
+        pthread_mutex_unlock(&mutex);
+        sleep(1);
+    }
+    return NULL;
+}
+
+void *smoker_matches(void *arg) {
+    while (true) {
+        pthread_mutex_lock(&mutex);
+        if (tobacco && paper) {
+            printf("Smoker with matches: Make cigarette and smoke\n");
+            tobacco = 0;
+            paper = 0;
+        }
+        pthread_mutex_unlock(&mutex);
+        sleep(1);
+    }
+    return NULL;
+}
+
+int main() {
+    pthread_t thread_agent, thread_smoker_tobacco, thread_smoker_paper, thread_smoker_matches;
+    pthread_create(&thread_agent, NULL, agent, NULL);
+    pthread_create(&thread_smoker_tobacco, NULL, smoker_tobacco, NULL);
+    pthread_create(&thread_smoker_paper, NULL, smoker_paper, NULL);
+    pthread_create(&thread_smoker_matches, NULL, smoker_matches, NULL);
+
+    pthread_join(thread_agent, NULL);
+    pthread_join(thread_smoker_tobacco, NULL);
+    pthread_join(thread_smoker_paper, NULL);
+    pthread_join(thread_smoker_matches, NULL);
+
+    return 0;
+}
