@@ -1,0 +1,55 @@
+#include<stdio.h>
+#include<stdlib.h>
+#include<unistd.h>
+#include<pthread.h>
+int M,N;
+double **A,**B,**C;
+void *workers(void *arg)
+{
+    int row=*(int *)arg;
+    for(int i=0;i<N;i++)
+    {
+        C[row][i]=A[row][i]/B[row][i];
+    }
+    return NULL;
+}
+int main(int argc,char *argv[])
+{
+    M=atoi(argv[1]);
+    N=atoi(argv[2]);
+    A=(double **)malloc(M*sizeof(double *));
+    B=(double **)malloc(M*sizeof(double *));
+    C=(double **)malloc(M*sizeof(double *));
+    for(int i=0;i<N;i++)
+    {
+        A[i]=(double *)malloc(N*sizeof(double));
+        B[i]=(double *)malloc(N*sizeof(double));
+        C[i]=(double *)malloc(N*sizeof(double));
+    }
+    for(int i=0;i<M;i++)
+    {
+        for(int j=0;j<N;j++)
+        {
+            A[i][j]=rand()%100;
+            B[i][j]=rand()%100;
+        }
+    }
+    pthread_t threads[M];
+    for(int i=0;i<M;i++)
+    {
+        int *row=(int *)malloc(sizeof(int));
+        *row=i;
+        pthread_create(&threads[i],NULL,workers,(void *)row);
+    }
+    for(int i=0;i<M;i++)
+    {
+        pthread_join(threads[i],NULL);
+    }
+    for (int i = 0; i < M; i++) {
+        for (int j = 0; j < N; j++) {
+            printf("%.0f / %.0f = %.1f\t", A[i][j], B[i][j], C[i][j]);
+        }
+        printf("\n");
+    }
+    return 0;
+}
