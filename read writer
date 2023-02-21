@@ -1,0 +1,59 @@
+#include <pthread.h>
+#include <stdio.h>
+#define NUM_STUDENTS 8
+#define NUM_SYSTEMS 20
+pthread_mutex_t lab_mutex = PTHREAD_MUTEX_INITIALIZER;
+pthread_cond_t instructor_cond = PTHREAD_COND_INITIALIZER;
+pthread_cond_t student_cond = PTHREAD_COND_INITIALIZER;
+int num_students_in_lab = 0;
+int instructor_in_lab = 0;
+void *instructor(void *arg) {
+    while (1) {
+        pthread_mutex_lock(&lab_mutex);
+        while (num_students_in_lab > 0 || instructor_in_lab) {
+            pthread_cond_wait(&instructor_cond, &lab_mutex);
+        }
+        instructor_in_lab = 1;
+        printf("Instructor entered the lab.\n");
+        instructor_in_lab = 0;
+        printf("Instructor left the lab.\n");
+        pthread_cond_broadcast(&student_cond);
+        pthread_cond_signal(&instructor_cond);
+        pthread_mutex_unlock(&lab_mutex);
+    }
+}
+void *student(void *arg) {
+    int student_id = *((int *) arg);
+    while (1) {
+        pthread_mutex_lock(&lab_mutex);
+        while (num_students_in_lab >= NUM_STUDENTS || instructor_in_lab) {
+            pthread_cond_wait(&student_cond, &lab_mutex);
+        }
+        num_students_in_lab++;
+        printf("Student %d entered the lab. Total students in lab: %d\n", student_id, num_students_in_lab);
+        pthread_mutex_unlock(&lab_mutex);
+        pthread_mutex_lock(&lab_mutex);
+        num_students_in_lab--;
+        printf("Student %d left the lab. Total students in lab: %d\n", student_id, num_students_in_lab);
+        if (num_students_in_lab == 0) {
+            pthread_cond_signal(&instructor_cond);
+        }
+        pthread_mutex_unlock(&lab_mutex);
+    }
+}
+int main() {
+    pthread_t instructor_thread;
+    pthread_t student_threads[NUM_STUDENTS];
+    int student_ids[NUM_STUDENTS];
+    int i;
+    pthread_create(&instructor_thread, NULL, instructor, NULL)
+    for (i = 0; i < NUM_STUDENTS; i++) {
+        student_ids[i] = i;
+        pthread_create(&student_threads[i], NULL, student, &student_ids[i])
+    }
+    pthread_join(instructor_thread, NULL);
+    for (i = 0; i < NUM_STUDENTS; i++) {
+        pthread_join(student_threads[i], NULL);
+    }
+    return 0;
+}
